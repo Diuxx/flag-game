@@ -1,0 +1,183 @@
+<html>
+    <head>
+        <style>
+            @font-face {
+                font-family: NotoColorEmojiLimited;
+                unicode-range: U+1F1E6-1F1FF;
+                src: url(https://raw.githack.com/googlefonts/noto-emoji/main/fonts/NotoColorEmoji.ttf);
+            }
+            body {
+                height: calc(100vh - 20px);
+            }
+            body, #menu, #game {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+            }
+            .flag {
+                font-family: 'NotoColorEmojiLimited';
+                font-size: 200px;
+                border-radius: 50px;
+            }
+            #result, #end {
+                font-size: 2em;
+                letter-spacing: 2px;
+                text-align: center;
+                /* font-weight: bold; */
+            }
+            #answer {
+                font-size: large;
+            }
+            #help {
+                background-color: #eb6b3e;
+                color: white;
+            }
+            input[type="button"] {
+                font-size: large;
+            }
+            /* HTML: <div class="loader"></div> */
+            .loader {
+                width: 35px;
+                height: 80px;
+                position: relative;
+            }
+            .loader:after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                padding: 3px 5px;
+                border-top: 1px solid #bbb6aa;
+                border-bottom: 4px solid #bbb6aa;
+                background: 
+                    linear-gradient(#612329 0 0) bottom no-repeat content-box, 
+                    #e4e0d7;
+                mix-blend-mode: darken;
+                animation: l1 1.5s infinite linear;
+            }
+            .loader:before {
+                content: "";
+                position: absolute;
+                inset: -18px calc(50% - 2px) 8px;
+                background: #eb6b3e;   
+                transform-origin: bottom;
+                transform: rotate(8deg);
+            }
+            @keyframes l1 {
+                0%   {background-size: 100% 100%}
+                100% {background-size: 100% 5%}
+            }
+        </style>
+    </head>
+    <body>
+        <div class="loader" id="loader" style="display: block;"></div>
+        <div id="menu" style="display: none;">
+            <div id="end"></div>
+            <h1>Les drapeaux du monde</h1>
+            <input type="button" id="play" value="JOUER">
+        </div>
+        <div id="game" style="display: none;">
+            <div id="result"></div>
+            <div class="flag" id="flag"></div>
+            <div id="helpData"></div>
+            <div>
+                <input type="button" id="help" value="Help" />
+                <input type="text" id="answer" />
+                <input type="button" id="validate" value="Ultime bafouille ?"/>
+                <input type="button" id="stop" value="Exit" />
+            </div>
+        </div>
+        <script>
+            // variables
+            const maxTry = 10;
+            var currentTry = 0, success = 0;
+            var currentFlag = null;
+            var flagList = null;
+
+            fetchFlags();
+            document.getElementById('play').focus();
+            document.getElementById('play').addEventListener('click', () => {
+                currentTry = 0;
+                currentFlag = null;
+                document.getElementById('menu').style.display = 'none';
+                document.getElementById('game').style.display = 'flex';
+                start();
+            });
+            document.getElementById('stop').addEventListener('click', () => stop());
+            document.getElementById('help').addEventListener('click', () => help());
+            document.getElementById('validate').addEventListener('click', () => {
+                console.log('click')
+                var result = verify();
+                if (result) {
+                    document.getElementById("end").innerHTML = `${success}/${currentTry}<br>Try again ?`
+                    document.getElementById('menu').style.display = 'flex';
+                    document.getElementById('game').style.display = 'none';
+                    console.log('end');
+                } 
+                else {
+                    play()
+                }
+            });
+            document.getElementById("answer").addEventListener("keypress", (event) => {
+                if (event.key === 'Enter') {
+                    document.getElementById('validate').click();
+                }
+            });
+            function verify() {
+                currentTry += 1;
+                var answer = document.getElementById('answer').value;
+                // note voir les possibilité d'include...
+                if (answer.toLowerCase() == `${currentFlag.name}`.toLowerCase()) {
+                    success++;
+                }
+                document.getElementById('result').innerHTML = `${success}/${currentTry} Max: ${maxTry}`;
+                document.getElementById('helpData').innerHTML = '';
+                document.getElementById('answer').value = '';
+
+                return currentTry >= maxTry;
+            }
+            function play() {
+                var countFlags = flagList.length;
+                currentFlag = flagList[random(countFlags)];
+                console.log(currentFlag);
+
+                document.getElementById('flag').innerHTML = currentFlag.emoji;
+                document.getElementById('answer').focus();
+            }
+            function stop() {
+                currentTry = success = 0;
+                currentFlag = null;
+                document.getElementById("end").innerHTML = ``;
+                document.getElementById('menu').style.display = 'flex';
+                document.getElementById('game').style.display = 'none';
+            }
+            function help() {
+                document.getElementById('helpData').innerHTML = currentFlag.name;
+            }
+            function start() {
+                currentTry = success = 0;
+                currentFlag = null;
+
+                document.getElementById('result').innerHTML = `${success}/${currentTry} Max: ${maxTry}`;
+                const countFlag = flagList.length;
+                play();
+                // --
+            }
+            function random(max) {
+                return Math.floor(Math.random() * max)
+            }
+            async function fetchFlags() {
+                if (flagList == null) {
+                    const result = await fetch('https://raw.githubusercontent.com/matiassingers/emoji-flags/master/data.json');
+                    flagList = await result.json();
+                }
+                setTimeout(() => {
+                    document.getElementById('menu').style.display = 'flex';
+                    document.getElementById('loader').style.display = 'none';
+                }, 100);
+                return flagList;
+            }
+        </script>
+    </body>
+</html>
